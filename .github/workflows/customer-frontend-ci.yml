@@ -1,0 +1,57 @@
+name: Customer Frontend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'customer-frontend/**'
+      - '.github/workflows/customer-frontend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'customer-frontend/**'
+      - '.github/workflows/customer-frontend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: customer-frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./customer-frontend
+      run: npm ci
+    
+    - name: Lint with ESLint
+      working-directory: ./customer-frontend
+      run: npm run lint
+    
+    - name: Type check with TypeScript
+      working-directory: ./customer-frontend
+      run: npm run type-check
+    
+    - name: Run tests
+      working-directory: ./customer-frontend
+      run: npm run test -- --coverage --watchAll=false
+    
+    - name: Build application
+      working-directory: ./customer-frontend
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      run: npm run build
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./customer-frontend/coverage/lcov.info
+        flags: customer-frontend
+        name: customer-frontend-coverage

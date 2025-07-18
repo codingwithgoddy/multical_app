@@ -1,0 +1,57 @@
+name: Admin Frontend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'admin-frontend/**'
+      - '.github/workflows/admin-frontend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'admin-frontend/**'
+      - '.github/workflows/admin-frontend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: admin-frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./admin-frontend
+      run: npm ci
+    
+    - name: Lint with ESLint
+      working-directory: ./admin-frontend
+      run: npm run lint
+    
+    - name: Type check with TypeScript
+      working-directory: ./admin-frontend
+      run: npm run type-check
+    
+    - name: Run tests
+      working-directory: ./admin-frontend
+      run: npm run test -- --coverage --watchAll=false
+    
+    - name: Build application
+      working-directory: ./admin-frontend
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      run: npm run build
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./admin-frontend/coverage/lcov.info
+        flags: admin-frontend
+        name: admin-frontend-coverage
