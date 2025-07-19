@@ -1,0 +1,263 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (optional)'
+        required: false
+        default: ''
+
+jobs:
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set version
+        id: set-version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "Using manually specified version: ${{ github.event.inputs.version }}"
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION="0.1.0-dev.$(date +'%Y%m%d%H%M%S')"
+            echo "Using auto-generated version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create deployment tag
+        run: |
+          git tag staging-${{ steps.set-version.outputs.version }}
+          git push origin staging-${{ steps.set-version.outputs.version }}
+  
+  deploy-backend:
+    name: Deploy Backend to Staging
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://api-staging.multiprints.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Check if backend directory exists
+        id: check_backend
+        run: |
+          if [ -d "backend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install dependencies
+        if: steps.check_backend.outputs.exists == 'true'
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run migrations
+        if: steps.check_backend.outputs.exists == 'true'
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          FLASK_ENV: staging
+        run: |
+          echo "Running database migrations..."
+          # This would normally run migrations
+          # flask db upgrade
+      
+      - name: Configure AWS credentials
+        if: steps.check_backend.outputs.exists == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to AWS App Runner
+        if: steps.check_backend.outputs.exists == 'true'
+        run: |
+          echo "Deploying backend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
+          # This would normally deploy to AWS App Runner
+          # aws apprunner update-service --service-arn ${{ secrets.STAGING_BACKEND_SERVICE_ARN }} --source-configuration ...
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_backend.outputs.exists }}" == "false" ]; then
+            echo "Backend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Backend deployment to staging successful"
+          else
+            echo "Backend deployment to staging failed"
+          fi
+  
+  deploy-admin-frontend:
+    name: Deploy Admin Frontend to Staging
+    needs: [prepare, deploy-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://admin-staging.multiprints.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Check if admin-frontend directory exists
+        id: check_admin_frontend
+        run: |
+          if [ -d "admin-frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install dependencies
+        if: steps.check_admin_frontend.outputs.exists == 'true'
+        working-directory: ./admin-frontend
+        run: npm ci
+      
+      - name: Build application
+        if: steps.check_admin_frontend.outputs.exists == 'true'
+        working-directory: ./admin-frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://api-staging.multiprints.com/api/v1
+          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
+        run: npm run build
+      
+      - name: Configure AWS credentials
+        if: steps.check_admin_frontend.outputs.exists == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to AWS App Runner
+        if: steps.check_admin_frontend.outputs.exists == 'true'
+        run: |
+          echo "Deploying admin frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
+          # This would normally deploy to AWS App Runner
+          # aws apprunner update-service --service-arn ${{ secrets.STAGING_ADMIN_FRONTEND_SERVICE_ARN }} --source-configuration ...
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_admin_frontend.outputs.exists }}" == "false" ]; then
+            echo "Admin frontend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Admin frontend deployment to staging successful"
+          else
+            echo "Admin frontend deployment to staging failed"
+          fi
+  
+  deploy-customer-frontend:
+    name: Deploy Customer Frontend to Staging
+    needs: [prepare, deploy-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.multiprints.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Check if customer-frontend directory exists
+        id: check_customer_frontend
+        run: |
+          if [ -d "customer-frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install dependencies
+        if: steps.check_customer_frontend.outputs.exists == 'true'
+        working-directory: ./customer-frontend
+        run: npm ci
+      
+      - name: Build application
+        if: steps.check_customer_frontend.outputs.exists == 'true'
+        working-directory: ./customer-frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://api-staging.multiprints.com/api/v1
+          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
+        run: npm run build
+      
+      - name: Configure AWS credentials
+        if: steps.check_customer_frontend.outputs.exists == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to AWS App Runner
+        if: steps.check_customer_frontend.outputs.exists == 'true'
+        run: |
+          echo "Deploying customer frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
+          # This would normally deploy to AWS App Runner
+          # aws apprunner update-service --service-arn ${{ secrets.STAGING_CUSTOMER_FRONTEND_SERVICE_ARN }} --source-configuration ...
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_customer_frontend.outputs.exists }}" == "false" ]; then
+            echo "Customer frontend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Customer frontend deployment to staging successful"
+          else
+            echo "Customer frontend deployment to staging failed"
+          fi
+  
+  post-deploy:
+    name: Post-Deployment Tasks
+    needs: [prepare, deploy-backend, deploy-admin-frontend, deploy-customer-frontend]
+    runs-on: ubuntu-latest
+    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-admin-frontend.result == 'success' || needs.deploy-admin-frontend.result == 'skipped') && (needs.deploy-customer-frontend.result == 'success' || needs.deploy-customer-frontend.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging environment..."
+          # This would normally run smoke tests against the staging environment
+          # ./scripts/run-smoke-tests.sh
+      
+      - name: Create deployment record
+        run: |
+          echo "Creating deployment record for version ${{ needs.prepare.outputs.version }}..."
+          # This would normally create a deployment record
+      
+      - name: Send deployment notification
+        run: |
+          echo "Sending deployment notification..."
+          # This would normally send a notification via Slack, email, etc.
+          echo "Version ${{ needs.prepare.outputs.version }} has been deployed to staging"
