@@ -16,13 +16,12 @@ The staging environment is a complete replica of the production environment, use
   - Name: multiprints-staging-db
   - Connection: Internal connection to backend
 
-- **Admin Frontend**: Vercel (Free Tier)
-  - URL: https://admin-staging.multiprints.vercel.app
+- **Frontend**: Vercel (Free Tier)
+  - URL: https://multiprints-staging.vercel.app
   - GitHub Branch: `develop`
-
-- **Customer Frontend**: Vercel (Free Tier)
-  - URL: https://customer-staging.multiprints.vercel.app
-  - GitHub Branch: `develop`
+  - Contains both admin dashboard and customer website in a single Next.js application
+  - Admin dashboard accessible at: https://multiprints-staging.vercel.app/admin
+  - Customer website accessible at: https://multiprints-staging.vercel.app
 
 ## Deployment
 
@@ -30,11 +29,11 @@ The staging environment is automatically deployed when changes are pushed to the
 
 ## Access
 
-- **Admin Dashboard**: https://admin-staging.multiprints.vercel.app
+- **Admin Dashboard**: https://multiprints-staging.vercel.app/admin
   - Username: admin@multiprints.com
   - Password: [Contact administrator]
 
-- **Customer Website**: https://customer-staging.multiprints.vercel.app
+- **Customer Website**: https://multiprints-staging.vercel.app
 
 ## Testing
 
@@ -94,17 +93,12 @@ Before deploying to production, all changes should be thoroughly tested in the s
 
 1. Sign up for Vercel at [vercel.com](https://vercel.com/)
 2. Import your GitHub repository
-3. Configure admin frontend:
+3. Configure unified frontend:
    - Framework: Next.js
-   - Root Directory: `admin-frontend`
+   - Root Directory: `frontend`
    - Environment Variables:
      - `NEXT_PUBLIC_API_URL`: [Your Render backend URL + `/api/v1`]
      - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`: [Your Cloudinary cloud name]
-
-4. Configure customer frontend:
-   - Framework: Next.js
-   - Root Directory: `customer-frontend`
-   - Same environment variables
 
 ### Cloudinary Setup
 
