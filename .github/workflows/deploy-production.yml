@@ -1,0 +1,218 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy'
+        required: true
+      confirm:
+        description: 'Type "CONFIRM" to proceed with production deployment'
+        required: true
+
+jobs:
+  validate:
+    name: Validate Deployment Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        if: github.event.inputs.confirm != 'CONFIRM'
+        run: |
+          echo "Error: You must type CONFIRM to proceed with production deployment"
+          exit 1
+      
+      - name: Check version format
+        run: |
+          if [[ ! ${{ github.event.inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+            exit 1
+          fi
+  
+  prepare:
+    name: Prepare Production Deployment
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    outputs:
+      version: ${{ github.event.inputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Create release tag
+        run: |
+          git tag v${{ github.event.inputs.version }}
+          git push origin v${{ github.event.inputs.version }}
+      
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ github.event.inputs.version }}
+          tag_name: v${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  deploy-backend:
+    name: Deploy Backend to Production
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.service_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+      
+      - name: Check if backend directory exists
+        id: check_backend
+        run: |
+          if [ -d "backend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Deploy to Render
+        if: steps.check_backend.outputs.exists == 'true'
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_backend.outputs.exists }}" == "false" ]; then
+            echo "Backend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Backend deployment to production successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
+          else
+            echo "Backend deployment to production failed"
+            exit 1
+          fi
+  
+  deploy-frontend:
+    name: Deploy Frontend to Production
+    needs: [prepare, deploy-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.vercel-deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+      
+      - name: Check if frontend directory exists
+        id: check_frontend
+        run: |
+          if [ -d "frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Deploy to Vercel
+        if: steps.check_frontend.outputs.exists == 'true'
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            multiprints.com
+            www.multiprints.com
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_frontend.outputs.exists }}" == "false" ]; then
+            echo "Frontend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Frontend deployment to production successful"
+            echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
+          else
+            echo "Frontend deployment to production failed"
+            exit 1
+          fi
+  
+  post-deploy:
+    name: Post-Deployment Tasks
+    needs: [prepare, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always() && needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against production environment..."
+          # This would normally run smoke tests against the production environment
+          ./scripts/run-smoke-tests.sh
+      
+      - name: Create deployment record
+        run: |
+          echo "Creating deployment record for version ${{ needs.prepare.outputs.version }}..."
+          # This would normally create a deployment record
+      
+      - name: Send deployment notification
+        run: |
+          echo "Sending deployment notification..."
+          # This would normally send a notification via Slack, email, etc.
+          echo "Version ${{ needs.prepare.outputs.version }} has been deployed to production"
+  
+  rollback:
+    name: Rollback on Failure
+    needs: [prepare, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: failure() && (needs.deploy-backend.result == 'failure' || needs.deploy-frontend.result == 'failure')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Rollback backend
+        if: needs.deploy-backend.result == 'failure'
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_BACKEND_ROLLBACK_URL }}
+      
+      - name: Rollback frontend
+        if: needs.deploy-frontend.result == 'failure'
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --force'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            multiprints.com
+            www.multiprints.com
+      
+      - name: Send rollback notification
+        run: |
+          echo "Sending rollback notification..."
+          # This would normally send a notification via Slack, email, etc.
+          echo "Deployment of version ${{ needs.prepare.outputs.version }} to production failed and has been rolled back"

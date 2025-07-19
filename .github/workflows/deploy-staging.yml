@@ -1,0 +1,151 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (optional)'
+        required: false
+        default: ''
+
+jobs:
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set version
+        id: set-version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "Using manually specified version: ${{ github.event.inputs.version }}"
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION="0.1.0-dev.$(date +'%Y%m%d%H%M%S')"
+            echo "Using auto-generated version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create deployment tag
+        run: |
+          git tag staging-${{ steps.set-version.outputs.version }}
+          git push origin staging-${{ steps.set-version.outputs.version }}
+  
+  deploy-backend:
+    name: Deploy Backend to Staging
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.service_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check if backend directory exists
+        id: check_backend
+        run: |
+          if [ -d "backend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Deploy to Render
+        if: steps.check_backend.outputs.exists == 'true'
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_backend.outputs.exists }}" == "false" ]; then
+            echo "Backend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Backend deployment to staging successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
+          else
+            echo "Backend deployment to staging failed"
+          fi
+  
+  deploy-frontend:
+    name: Deploy Frontend to Staging
+    needs: [prepare, deploy-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.vercel-deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check if frontend directory exists
+        id: check_frontend
+        run: |
+          if [ -d "frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Deploy to Vercel
+        if: steps.check_frontend.outputs.exists == 'true'
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.check_frontend.outputs.exists }}" == "false" ]; then
+            echo "Frontend directory does not exist yet, deployment skipped"
+          elif [ "${{ job.status }}" == "success" ]; then
+            echo "Frontend deployment to staging successful"
+            echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
+          else
+            echo "Frontend deployment to staging failed"
+          fi
+  
+  post-deploy:
+    name: Post-Deployment Tasks
+    needs: [prepare, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging environment..."
+          # This would normally run smoke tests against the staging environment
+          ./scripts/run-smoke-tests.sh
+      
+      - name: Create deployment record
+        run: |
+          echo "Creating deployment record for version ${{ needs.prepare.outputs.version }}..."
+          # This would normally create a deployment record
+      
+      - name: Send deployment notification
+        run: |
+          echo "Sending deployment notification..."
+          # This would normally send a notification via Slack, email, etc.
+          echo "Version ${{ needs.prepare.outputs.version }} has been deployed to staging"
