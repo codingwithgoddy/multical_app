@@ -1,0 +1,55 @@
+name: Branch Protection Audit
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Run weekly on Mondays
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check branch protection
+        uses: octokit/request-action@v2.x
+        id: get_branch_protection
+        with:
+          route: GET /repos/{owner}/{repo}/branches/{branch}/protection
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Verify branch protection
+        run: |
+          if [ "${{ steps.get_branch_protection.outputs.status }}" != "200" ]; then
+            echo "::warning::Branch protection not enabled for main branch!"
+            echo "Please enable branch protection rules as documented in CONTRIBUTING.md"
+          else
+            echo "Branch protection is properly configured for main branch."
+          fi
+
+      - name: Check develop branch protection
+        uses: octokit/request-action@v2.x
+        id: get_develop_protection
+        with:
+          route: GET /repos/{owner}/{repo}/branches/{branch}/protection
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          branch: develop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Verify develop branch protection
+        run: |
+          if [ "${{ steps.get_develop_protection.outputs.status }}" != "200" ]; then
+            echo "::warning::Branch protection not enabled for develop branch!"
+            echo "Please enable branch protection rules as documented in CONTRIBUTING.md"
+          else
+            echo "Branch protection is properly configured for develop branch."
+          fi
