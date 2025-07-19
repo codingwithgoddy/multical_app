@@ -10,8 +10,7 @@ A comprehensive business management system designed to help small to medium prin
 ## Architecture
 
 - **Backend**: Flask REST API with PostgreSQL database
-- **Admin Dashboard**: Next.js application for business management
-- **Customer Website**: Next.js application for service browsing and ordering
+- **Frontend**: Next.js application with both admin dashboard and customer website
 - **File Storage**: Cloudinary integration for images and design files
 - **Payments**: Mpesa STK Push and Paybill integration
 
@@ -28,18 +27,29 @@ A comprehensive business management system designed to help small to medium prin
 
 ```
 ├── backend/              # Flask API server
-├── admin-frontend/       # Next.js admin dashboard
-├── customer-frontend/    # Next.js customer website
-├── .github/workflows/    # CI/CD workflows
-└── .kiro/specs/         # Project specifications
+├── frontend/             # Next.js application (admin + customer)
+├── docs/                 # Documentation
+└── scripts/              # Utility scripts
 ```
 
 ### Getting Started
 
 1. Clone the repository
-2. Set up the backend (see `backend/README.md`)
-3. Set up the admin frontend (see `admin-frontend/README.md`)
-4. Set up the customer frontend (see `customer-frontend/README.md`)
+2. Set up the local PostgreSQL database
+3. Set up the backend:
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   flask run
+   ```
+4. Set up the frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
 ### CI/CD
 
