@@ -1,4 +1,4 @@
-name: Deploy to Production (Render)
+name: Deploy to Production
 
 on:
   workflow_dispatch:
@@ -102,8 +102,8 @@ jobs:
             exit 1
           fi
   
-  deploy-admin-frontend:
-    name: Deploy Admin Frontend to Production
+  deploy-frontend:
+    name: Deploy Frontend to Production
     needs: [prepare, deploy-backend]
     runs-on: ubuntu-latest
     environment:
@@ -115,73 +115,24 @@ jobs:
         with:
           ref: v${{ needs.prepare.outputs.version }}
       
-      - name: Check if admin-frontend directory exists
-        id: check_admin_frontend
+      - name: Check if frontend directory exists
+        id: check_frontend
         run: |
-          if [ -d "admin-frontend" ]; then
+          if [ -d "frontend" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
       - name: Deploy to Vercel
-        if: steps.check_admin_frontend.outputs.exists == 'true'
+        if: steps.check_frontend.outputs.exists == 'true'
         id: vercel-deploy
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
-          working-directory: ./admin-frontend
-          vercel-args: '--prod'
-          scope: ${{ secrets.VERCEL_ORG_ID }}
-          alias-domains: |
-            admin.multiprints.com
-      
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ steps.check_admin_frontend.outputs.exists }}" == "false" ]; then
-            echo "Admin frontend directory does not exist yet, deployment skipped"
-          elif [ "${{ job.status }}" == "success" ]; then
-            echo "Admin frontend deployment to production successful"
-            echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
-          else
-            echo "Admin frontend deployment to production failed"
-            exit 1
-          fi
-  
-  deploy-customer-frontend:
-    name: Deploy Customer Frontend to Production
-    needs: [prepare, deploy-backend]
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: ${{ steps.vercel-deploy.outputs.url }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare.outputs.version }}
-      
-      - name: Check if customer-frontend directory exists
-        id: check_customer_frontend
-        run: |
-          if [ -d "customer-frontend" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Deploy to Vercel
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        id: vercel-deploy
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_CUSTOMER_PROJECT_ID }}
-          working-directory: ./customer-frontend
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
           vercel-args: '--prod'
           scope: ${{ secrets.VERCEL_ORG_ID }}
           alias-domains: |
@@ -191,21 +142,21 @@ jobs:
       - name: Notify deployment status
         if: always()
         run: |
-          if [ "${{ steps.check_customer_frontend.outputs.exists }}" == "false" ]; then
-            echo "Customer frontend directory does not exist yet, deployment skipped"
+          if [ "${{ steps.check_frontend.outputs.exists }}" == "false" ]; then
+            echo "Frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
-            echo "Customer frontend deployment to production successful"
+            echo "Frontend deployment to production successful"
             echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
           else
-            echo "Customer frontend deployment to production failed"
+            echo "Frontend deployment to production failed"
             exit 1
           fi
   
   post-deploy:
     name: Post-Deployment Tasks
-    needs: [prepare, deploy-backend, deploy-admin-frontend, deploy-customer-frontend]
+    needs: [prepare, deploy-backend, deploy-frontend]
     runs-on: ubuntu-latest
-    if: always() && needs.deploy-backend.result == 'success' && needs.deploy-admin-frontend.result == 'success' && needs.deploy-customer-frontend.result == 'success'
+    if: always() && needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -216,7 +167,7 @@ jobs:
         run: |
           echo "Running smoke tests against production environment..."
           # This would normally run smoke tests against the production environment
-          # ./scripts/run-smoke-tests.sh
+          ./scripts/run-smoke-tests.sh
       
       - name: Create deployment record
         run: |
@@ -231,9 +182,9 @@ jobs:
   
   rollback:
     name: Rollback on Failure
-    needs: [prepare, deploy-backend, deploy-admin-frontend, deploy-customer-frontend]
+    needs: [prepare, deploy-backend, deploy-frontend]
     runs-on: ubuntu-latest
-    if: failure() && (needs.deploy-backend.result == 'failure' || needs.deploy-admin-frontend.result == 'failure' || needs.deploy-customer-frontend.result == 'failure')
+    if: failure() && (needs.deploy-backend.result == 'failure' || needs.deploy-frontend.result == 'failure')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -247,25 +198,13 @@ jobs:
           wait-for-success: true
           deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_BACKEND_ROLLBACK_URL }}
       
-      - name: Rollback admin frontend
-        if: needs.deploy-admin-frontend.result == 'failure'
+      - name: Rollback frontend
+        if: needs.deploy-frontend.result == 'failure'
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
-          vercel-args: '--prod --force'
-          scope: ${{ secrets.VERCEL_ORG_ID }}
-          alias-domains: |
-            admin.multiprints.com
-      
-      - name: Rollback customer frontend
-        if: needs.deploy-customer-frontend.result == 'failure'
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_CUSTOMER_PROJECT_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod --force'
           scope: ${{ secrets.VERCEL_ORG_ID }}
           alias-domains: |

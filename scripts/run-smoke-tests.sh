@@ -4,13 +4,11 @@
 
 # Set variables
 BACKEND_URL=${BACKEND_URL:-"https://multiprints-backend-staging.onrender.com"}
-ADMIN_URL=${ADMIN_URL:-"https://admin-staging.multiprints.vercel.app"}
-CUSTOMER_URL=${CUSTOMER_URL:-"https://customer-staging.multiprints.vercel.app"}
+FRONTEND_URL=${FRONTEND_URL:-"https://multiprints-staging.vercel.app"}
 
 echo "Running smoke tests against staging environment..."
 echo "Backend URL: $BACKEND_URL"
-echo "Admin URL: $ADMIN_URL"
-echo "Customer URL: $CUSTOMER_URL"
+echo "Frontend URL: $FRONTEND_URL"
 
 # Check backend health endpoint
 echo "Checking backend health..."
@@ -22,23 +20,23 @@ else
   FAILED=true
 fi
 
-# Check admin frontend
-echo "Checking admin frontend..."
-ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$ADMIN_URL")
-if [ "$ADMIN_STATUS" == "200" ]; then
-  echo "✅ Admin frontend check passed"
+# Check frontend (customer website)
+echo "Checking frontend (customer website)..."
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL")
+if [ "$FRONTEND_STATUS" == "200" ]; then
+  echo "✅ Frontend (customer website) check passed"
 else
-  echo "❌ Admin frontend check failed with status $ADMIN_STATUS"
+  echo "❌ Frontend (customer website) check failed with status $FRONTEND_STATUS"
   FAILED=true
 fi
 
-# Check customer frontend
-echo "Checking customer frontend..."
-CUSTOMER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$CUSTOMER_URL")
-if [ "$CUSTOMER_STATUS" == "200" ]; then
-  echo "✅ Customer frontend check passed"
+# Check admin dashboard
+echo "Checking admin dashboard..."
+ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL/admin")
+if [ "$ADMIN_STATUS" == "200" ]; then
+  echo "✅ Admin dashboard check passed"
 else
-  echo "❌ Customer frontend check failed with status $CUSTOMER_STATUS"
+  echo "❌ Admin dashboard check failed with status $ADMIN_STATUS"
   FAILED=true
 fi
 
