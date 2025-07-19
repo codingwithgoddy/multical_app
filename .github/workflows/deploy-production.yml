@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.service_url }}
+      url: ${{ steps.vercel-deploy.outputs.url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -124,14 +124,19 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Deploy to Render
+      - name: Deploy to Vercel
         if: steps.check_admin_frontend.outputs.exists == 'true'
-        id: deploy
-        uses: johnbeynon/render-deploy-action@v0.0.8
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v20
         with:
-          service-id: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+          working-directory: ./admin-frontend
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            admin.multiprints.com
       
       - name: Notify deployment status
         if: always()
@@ -140,7 +145,7 @@ jobs:
             echo "Admin frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Admin frontend deployment to production successful"
-            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
+            echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
           else
             echo "Admin frontend deployment to production failed"
             exit 1
@@ -152,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.service_url }}
+      url: ${{ steps.vercel-deploy.outputs.url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -168,14 +173,20 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Deploy to Render
+      - name: Deploy to Vercel
         if: steps.check_customer_frontend.outputs.exists == 'true'
-        id: deploy
-        uses: johnbeynon/render-deploy-action@v0.0.8
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v20
         with:
-          service-id: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_CUSTOMER_PROJECT_ID }}
+          working-directory: ./customer-frontend
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            multiprints.com
+            www.multiprints.com
       
       - name: Notify deployment status
         if: always()
@@ -184,7 +195,7 @@ jobs:
             echo "Customer frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Customer frontend deployment to production successful"
-            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
+            echo "Deployed to ${{ steps.vercel-deploy.outputs.url }}"
           else
             echo "Customer frontend deployment to production failed"
             exit 1
@@ -238,21 +249,28 @@ jobs:
       
       - name: Rollback admin frontend
         if: needs.deploy-admin-frontend.result == 'failure'
-        uses: johnbeynon/render-deploy-action@v0.0.8
+        uses: amondnet/vercel-action@v20
         with:
-          service-id: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
-          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_ROLLBACK_URL }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+          vercel-args: '--prod --force'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            admin.multiprints.com
       
       - name: Rollback customer frontend
         if: needs.deploy-customer-frontend.result == 'failure'
-        uses: johnbeynon/render-deploy-action@v0.0.8
+        uses: amondnet/vercel-action@v20
         with:
-          service-id: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
-          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_ROLLBACK_URL }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_CUSTOMER_PROJECT_ID }}
+          vercel-args: '--prod --force'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: |
+            multiprints.com
+            www.multiprints.com
       
       - name: Send rollback notification
         run: |
