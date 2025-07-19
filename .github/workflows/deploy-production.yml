@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy to Production (Render)
 
 on:
   workflow_dispatch:
@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://multiprints.com
     outputs:
       version: ${{ github.event.inputs.version }}
     steps:
@@ -65,17 +64,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://api.multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: v${{ needs.prepare.outputs.version }}
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
       
       - name: Check if backend directory exists
         id: check_backend
@@ -86,38 +80,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_backend.outputs.exists == 'true'
-        working-directory: ./backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Run migrations
-        if: steps.check_backend.outputs.exists == 'true'
-        working-directory: ./backend
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-          FLASK_ENV: production
-        run: |
-          echo "Running database migrations..."
-          # This would normally run migrations
-          # flask db upgrade
-      
-      - name: Configure AWS credentials
-        if: steps.check_backend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_backend.outputs.exists == 'true'
-        run: |
-          echo "Deploying backend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.PRODUCTION_BACKEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_PRODUCTION_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -126,6 +96,7 @@ jobs:
             echo "Backend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Backend deployment to production successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Backend deployment to production failed"
             exit 1
@@ -137,17 +108,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://admin.multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: v${{ needs.prepare.outputs.version }}
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       
       - name: Check if admin-frontend directory exists
         id: check_admin_frontend
@@ -158,33 +124,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_admin_frontend.outputs.exists == 'true'
-        working-directory: ./admin-frontend
-        run: npm ci
-      
-      - name: Build application
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        working-directory: ./admin-frontend
-        env:
-          NEXT_PUBLIC_API_URL: https://api.multiprints.com/api/v1
-          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
-        run: npm run build
-      
-      - name: Configure AWS credentials
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        run: |
-          echo "Deploying admin frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.PRODUCTION_ADMIN_FRONTEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -193,6 +140,7 @@ jobs:
             echo "Admin frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Admin frontend deployment to production successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Admin frontend deployment to production failed"
             exit 1
@@ -204,17 +152,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: v${{ needs.prepare.outputs.version }}
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       
       - name: Check if customer-frontend directory exists
         id: check_customer_frontend
@@ -225,33 +168,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_customer_frontend.outputs.exists == 'true'
-        working-directory: ./customer-frontend
-        run: npm ci
-      
-      - name: Build application
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        working-directory: ./customer-frontend
-        env:
-          NEXT_PUBLIC_API_URL: https://api.multiprints.com/api/v1
-          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
-        run: npm run build
-      
-      - name: Configure AWS credentials
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        run: |
-          echo "Deploying customer frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -260,6 +184,7 @@ jobs:
             echo "Customer frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Customer frontend deployment to production successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Customer frontend deployment to production failed"
             exit 1
@@ -302,33 +227,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
       - name: Rollback backend
         if: needs.deploy-backend.result == 'failure'
-        run: |
-          echo "Rolling back backend deployment..."
-          # This would normally roll back to the previous version
-          # aws apprunner start-deployment --service-arn ${{ secrets.PRODUCTION_BACKEND_SERVICE_ARN }} --deployment-id ${{ secrets.LAST_SUCCESSFUL_BACKEND_DEPLOYMENT }}
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_BACKEND_ROLLBACK_URL }}
       
       - name: Rollback admin frontend
         if: needs.deploy-admin-frontend.result == 'failure'
-        run: |
-          echo "Rolling back admin frontend deployment..."
-          # This would normally roll back to the previous version
-          # aws apprunner start-deployment --service-arn ${{ secrets.PRODUCTION_ADMIN_FRONTEND_SERVICE_ARN }} --deployment-id ${{ secrets.LAST_SUCCESSFUL_ADMIN_FRONTEND_DEPLOYMENT }}
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_ADMIN_FRONTEND_ROLLBACK_URL }}
       
       - name: Rollback customer frontend
         if: needs.deploy-customer-frontend.result == 'failure'
-        run: |
-          echo "Rolling back customer frontend deployment..."
-          # This would normally roll back to the previous version
-          # aws apprunner start-deployment --service-arn ${{ secrets.PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ARN }} --deployment-id ${{ secrets.LAST_SUCCESSFUL_CUSTOMER_FRONTEND_DEPLOYMENT }}
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+          deploy-hook-url: ${{ secrets.RENDER_PRODUCTION_CUSTOMER_FRONTEND_ROLLBACK_URL }}
       
       - name: Send rollback notification
         run: |

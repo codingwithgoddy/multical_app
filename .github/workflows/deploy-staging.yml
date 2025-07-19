@@ -1,4 +1,4 @@
-name: Deploy to Staging
+name: Deploy to Staging (Render)
 
 on:
   push:
@@ -45,15 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: https://api-staging.multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
       
       - name: Check if backend directory exists
         id: check_backend
@@ -64,38 +59,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_backend.outputs.exists == 'true'
-        working-directory: ./backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Run migrations
-        if: steps.check_backend.outputs.exists == 'true'
-        working-directory: ./backend
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-          FLASK_ENV: staging
-        run: |
-          echo "Running database migrations..."
-          # This would normally run migrations
-          # flask db upgrade
-      
-      - name: Configure AWS credentials
-        if: steps.check_backend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_backend.outputs.exists == 'true'
-        run: |
-          echo "Deploying backend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.STAGING_BACKEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -104,6 +75,7 @@ jobs:
             echo "Backend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Backend deployment to staging successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Backend deployment to staging failed"
           fi
@@ -114,15 +86,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: https://admin-staging.multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       
       - name: Check if admin-frontend directory exists
         id: check_admin_frontend
@@ -133,33 +100,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_admin_frontend.outputs.exists == 'true'
-        working-directory: ./admin-frontend
-        run: npm ci
-      
-      - name: Build application
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        working-directory: ./admin-frontend
-        env:
-          NEXT_PUBLIC_API_URL: https://api-staging.multiprints.com/api/v1
-          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
-        run: npm run build
-      
-      - name: Configure AWS credentials
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_admin_frontend.outputs.exists == 'true'
-        run: |
-          echo "Deploying admin frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.STAGING_ADMIN_FRONTEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_ADMIN_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -168,6 +116,7 @@ jobs:
             echo "Admin frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Admin frontend deployment to staging successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Admin frontend deployment to staging failed"
           fi
@@ -178,15 +127,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: https://staging.multiprints.com
+      url: ${{ steps.deploy.outputs.service_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       
       - name: Check if customer-frontend directory exists
         id: check_customer_frontend
@@ -197,33 +141,14 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install dependencies
+      - name: Deploy to Render
         if: steps.check_customer_frontend.outputs.exists == 'true'
-        working-directory: ./customer-frontend
-        run: npm ci
-      
-      - name: Build application
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        working-directory: ./customer-frontend
-        env:
-          NEXT_PUBLIC_API_URL: https://api-staging.multiprints.com/api/v1
-          NEXT_PUBLIC_VERSION: ${{ needs.prepare.outputs.version }}
-        run: npm run build
-      
-      - name: Configure AWS credentials
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        id: deploy
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      
-      - name: Deploy to AWS App Runner
-        if: steps.check_customer_frontend.outputs.exists == 'true'
-        run: |
-          echo "Deploying customer frontend version ${{ needs.prepare.outputs.version }} to AWS App Runner..."
-          # This would normally deploy to AWS App Runner
-          # aws apprunner update-service --service-arn ${{ secrets.STAGING_CUSTOMER_FRONTEND_SERVICE_ARN }} --source-configuration ...
+          service-id: ${{ secrets.RENDER_CUSTOMER_FRONTEND_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
       
       - name: Notify deployment status
         if: always()
@@ -232,6 +157,7 @@ jobs:
             echo "Customer frontend directory does not exist yet, deployment skipped"
           elif [ "${{ job.status }}" == "success" ]; then
             echo "Customer frontend deployment to staging successful"
+            echo "Deployed to ${{ steps.deploy.outputs.service_url }}"
           else
             echo "Customer frontend deployment to staging failed"
           fi
