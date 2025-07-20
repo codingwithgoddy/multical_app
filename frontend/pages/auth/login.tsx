@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import useAuth from '../../hooks/useAuth';
 import { LoginCredentials } from '../../types';
+import Head from 'next/head';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
   
   const {
     register,
@@ -31,15 +39,25 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="mt-6 text-center text-3xl font-bold tracking-tight text-primary-700">
-          MultiPrints Admin
-        </h1>
-        <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900">
-          Sign in to your account
-        </h2>
-      </div>
+    <>
+      <Head>
+        <title>Login | MultiPrints Admin</title>
+        <meta name="description" content="Login to MultiPrints Admin Dashboard" />
+      </Head>
+      <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <div className="h-16 w-16 rounded-full bg-primary-700 flex items-center justify-center text-white text-2xl font-bold">
+              MP
+            </div>
+          </div>
+          <h1 className="mt-6 text-center text-3xl font-bold tracking-tight text-primary-700">
+            MultiPrints Admin
+          </h1>
+          <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900">
+            Sign in to your account
+          </h2>
+        </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
@@ -112,5 +130,6 @@ export default function Login() {
         </div>
       </div>
     </div>
+    </>
   );
 }
