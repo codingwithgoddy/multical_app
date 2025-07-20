@@ -12,6 +12,7 @@ import {
   ShoppingBagIcon,
   Cog6ToothIcon,
   UserGroupIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import Link from 'next/link';
@@ -31,25 +32,44 @@ const navigation = [
     name: 'Products', 
     href: '/products', 
     icon: ShoppingBagIcon,
-    roles: ['owner', 'worker'] // Only owners and workers can manage products
+    roles: ['owner', 'worker'], // Only owners and workers can manage products
+    children: [
+      { name: 'All Products', href: '/products' },
+      { name: 'Add New Product', href: '/products/new' },
+      { name: 'Categories', href: '/products/categories' },
+    ]
   },
   { 
     name: 'Orders', 
     href: '/orders', 
     icon: DocumentDuplicateIcon,
-    roles: ['owner', 'payment_admin', 'worker'] // All roles can access
+    roles: ['owner', 'payment_admin', 'worker'], // All roles can access
+    children: [
+      { name: 'All Orders', href: '/orders' },
+      { name: 'Pending Orders', href: '/orders?status=pending' },
+      { name: 'Completed Orders', href: '/orders?status=completed' },
+    ]
   },
   { 
     name: 'Customers', 
     href: '/customers', 
     icon: UsersIcon,
-    roles: ['owner', 'payment_admin'] // Only owners and payment admins can access customer data
+    roles: ['owner', 'payment_admin'], // Only owners and payment admins can access customer data
+    children: [
+      { name: 'All Customers', href: '/customers' },
+      { name: 'With Outstanding Debt', href: '/customers?has_debt=true' },
+    ]
   },
   { 
     name: 'Payments', 
     href: '/payments', 
     icon: CurrencyDollarIcon,
-    roles: ['owner', 'payment_admin'] // Only owners and payment admins can handle payments
+    roles: ['owner', 'payment_admin'], // Only owners and payment admins can handle payments
+    children: [
+      { name: 'All Payments', href: '/payments' },
+      { name: 'Record Payment', href: '/payments/record' },
+      { name: 'Pending Confirmations', href: '/payments/pending' },
+    ]
   },
   { 
     name: 'Analytics', 
@@ -71,6 +91,8 @@ const navigation = [
   },
 ];
 
+// No data section navigation items for this project
+
 interface AdminLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -78,8 +100,18 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const router = useRouter();
   const { user, logout } = useAuth();
+  
+  // Toggle expanded state for navigation items with children
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemName]: !prev[itemName]
+    }));
+  };
 
   return (
     <>
@@ -138,32 +170,95 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                         <li>
                           <ul role="list" className="-mx-2 space-y-1">
                             {navigation
-                              .filter(item => user?.role && item.roles.includes(user.role))
+                              .filter(item => !user?.role || item.roles.includes(user.role))
                               .map((item) => (
                                 <li key={item.name}>
-                                  <Link
-                                    href={item.href}
-                                    className={clsx(
-                                      router.pathname === item.href
-                                        ? 'bg-primary-800 text-white'
-                                        : 'text-primary-200 hover:bg-primary-800 hover:text-white',
-                                      'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
-                                    )}
-                                  >
-                                    <item.icon
+                                  {item.children ? (
+                                    <div>
+                                      <button
+                                        onClick={() => toggleExpanded(item.name)}
+                                        className={clsx(
+                                          router.pathname.startsWith(item.href)
+                                            ? 'bg-primary-800 text-white'
+                                            : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                          'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                                        )}
+                                      >
+                                        <item.icon
+                                          className={clsx(
+                                            router.pathname.startsWith(item.href)
+                                              ? 'text-white'
+                                              : 'text-primary-200 group-hover:text-white',
+                                            'h-6 w-6 shrink-0'
+                                          )}
+                                          aria-hidden="true"
+                                        />
+                                        <span className="flex-1">{item.name}</span>
+                                        <ChevronDownIcon
+                                          className={clsx(
+                                            expandedItems[item.name] ? 'rotate-180' : '',
+                                            'h-4 w-4 transition-transform duration-200'
+                                          )}
+                                        />
+                                      </button>
+                                      {expandedItems[item.name] && (
+                                        <ul className="mt-1 pl-8 space-y-1">
+                                          {item.children.map((child) => (
+                                            <li key={child.name}>
+                                              <Link
+                                                href={child.href}
+                                                className={clsx(
+                                                  router.asPath === child.href
+                                                    ? 'bg-primary-800 text-white'
+                                                    : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                                  'block rounded-md py-1 px-2 text-sm'
+                                                )}
+                                              >
+                                                {child.name}
+                                              </Link>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <Link
+                                      href={item.href}
                                       className={clsx(
                                         router.pathname === item.href
-                                          ? 'text-white'
-                                          : 'text-primary-200 group-hover:text-white',
-                                        'h-6 w-6 shrink-0'
+                                          ? 'bg-primary-800 text-white'
+                                          : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                        'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                                       )}
-                                      aria-hidden="true"
-                                    />
-                                    {item.name}
-                                  </Link>
+                                    >
+                                      <item.icon
+                                        className={clsx(
+                                          router.pathname === item.href
+                                            ? 'text-white'
+                                            : 'text-primary-200 group-hover:text-white',
+                                          'h-6 w-6 shrink-0'
+                                        )}
+                                        aria-hidden="true"
+                                      />
+                                      {item.name}
+                                    </Link>
+                                  )}
                                 </li>
                               ))}
                           </ul>
+                        </li>
+
+                        <li className="-mx-6 mt-auto">
+                          <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white">
+                            <div className="h-8 w-8 rounded-full bg-primary-800 flex items-center justify-center">
+                              <span>{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
+                            </div>
+                            <div>
+                              <span className="sr-only">Your profile</span>
+                              <span aria-hidden="true">{user?.username || 'User'}</span>
+                              <p className="text-xs text-primary-200 capitalize">{user?.role || 'Guest'}</p>
+                            </div>
+                          </div>
                         </li>
                       </ul>
                     </nav>
@@ -175,50 +270,124 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
         </Transition.Root>
 
         {/* Static sidebar for desktop */}
-        <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+        <div className={clsx(
+          "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300",
+          sidebarCollapsed ? "lg:w-20" : "lg:w-72"
+        )}>
           <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary-700 px-6">
-            <div className="flex h-16 shrink-0 items-center">
-              <h1 className="text-2xl font-bold tracking-tight text-white">MultiPrints</h1>
+            <div className="flex h-16 shrink-0 items-center justify-between">
+              <h1 className={clsx("text-2xl font-bold tracking-tight text-white", sidebarCollapsed && "hidden")}>MultiPrints</h1>
+              {sidebarCollapsed && <span className="text-2xl font-bold text-white">MP</span>}
+              <button
+                type="button"
+                className="text-primary-200 hover:text-white"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              >
+                <span className="sr-only">{sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
+                {sidebarCollapsed ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
+                  </svg>
+                )}
+              </button>
             </div>
             <nav className="flex flex-1 flex-col">
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
                     {navigation
-                      .filter(item => user?.role && item.roles.includes(user.role))
+                      .filter(item => !user?.role || item.roles.includes(user.role))
                       .map((item) => (
                         <li key={item.name}>
-                          <Link
-                            href={item.href}
-                            className={clsx(
-                              router.pathname === item.href
-                                ? 'bg-primary-800 text-white'
-                                : 'text-primary-200 hover:bg-primary-800 hover:text-white',
-                              'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
-                            )}
-                          >
-                            <item.icon
+                          {item.children ? (
+                            <div>
+                              <button
+                                onClick={() => toggleExpanded(item.name)}
+                                className={clsx(
+                                  router.pathname.startsWith(item.href)
+                                    ? 'bg-primary-800 text-white'
+                                    : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                  'group flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                                )}
+                              >
+                                <item.icon
+                                  className={clsx(
+                                    router.pathname.startsWith(item.href)
+                                      ? 'text-white'
+                                      : 'text-primary-200 group-hover:text-white',
+                                    'h-6 w-6 shrink-0'
+                                  )}
+                                  aria-hidden="true"
+                                />
+                                <span className="flex-1">{item.name}</span>
+                                <ChevronDownIcon
+                                  className={clsx(
+                                    expandedItems[item.name] ? 'rotate-180' : '',
+                                    'h-4 w-4 transition-transform duration-200'
+                                  )}
+                                />
+                              </button>
+                              {expandedItems[item.name] && (
+                                <ul className="mt-1 pl-8 space-y-1">
+                                  {item.children.map((child) => (
+                                    <li key={child.name}>
+                                      <Link
+                                        href={child.href}
+                                        className={clsx(
+                                          router.asPath === child.href
+                                            ? 'bg-primary-800 text-white'
+                                            : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                          'block rounded-md py-1 px-2 text-sm'
+                                        )}
+                                      >
+                                        {child.name}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ) : (
+                            <Link
+                              href={item.href}
                               className={clsx(
                                 router.pathname === item.href
-                                  ? 'text-white'
-                                  : 'text-primary-200 group-hover:text-white',
-                                'h-6 w-6 shrink-0'
+                                  ? 'bg-primary-800 text-white'
+                                  : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                               )}
-                              aria-hidden="true"
-                            />
-                            {item.name}
-                          </Link>
+                            >
+                              <item.icon
+                                className={clsx(
+                                  router.pathname === item.href
+                                    ? 'text-white'
+                                    : 'text-primary-200 group-hover:text-white',
+                                  'h-6 w-6 shrink-0'
+                                )}
+                                aria-hidden="true"
+                              />
+                              {item.name}
+                            </Link>
+                          )}
                         </li>
                       ))}
                   </ul>
                 </li>
+
                 <li className="-mx-6 mt-auto">
                   <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white">
                     <div className="h-8 w-8 rounded-full bg-primary-800 flex items-center justify-center">
                       <span>{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
                     </div>
-                    <span className="sr-only">Your profile</span>
-                    <span aria-hidden="true">{user?.username || 'User'}</span>
+                    <div className={clsx(sidebarCollapsed && "hidden")}>
+                      <span className="sr-only">Your profile</span>
+                      <span aria-hidden="true">{user?.username || 'User'}</span>
+                      <p className="text-xs text-primary-200 capitalize">{user?.role || 'Guest'}</p>
+                    </div>
                   </div>
                 </li>
               </ul>
@@ -238,15 +407,73 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
           <div className="flex-1 text-sm font-semibold leading-6 text-white">
             {title}
           </div>
-          <Link href="#">
-            <span className="sr-only">Your profile</span>
-            <div className="h-8 w-8 rounded-full bg-primary-800 flex items-center justify-center text-white">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
-            </div>
-          </Link>
+          <Menu as="div" className="relative">
+            <Menu.Button className="-m-1.5 flex items-center p-1.5">
+              <span className="sr-only">Open user menu</span>
+              <div className="h-8 w-8 rounded-full bg-primary-800 flex items-center justify-center text-white">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-56 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900">{user?.username || 'User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email || 'user@example.com'}</p>
+                </div>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/profile"
+                      className={clsx(
+                        active ? 'bg-gray-50' : '',
+                        'block px-4 py-2 text-sm text-gray-700'
+                      )}
+                    >
+                      Your Profile
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/settings"
+                      className={clsx(
+                        active ? 'bg-gray-50' : '',
+                        'block px-4 py-2 text-sm text-gray-700'
+                      )}
+                    >
+                      Settings
+                    </Link>
+                  )}
+                </Menu.Item>
+                <div className="border-t border-gray-100"></div>
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={logout}
+                      className={clsx(
+                        active ? 'bg-gray-50' : '',
+                        'block w-full text-left px-4 py-2 text-sm text-gray-700'
+                      )}
+                    >
+                      Sign out
+                    </button>
+                  )}
+                </Menu.Item>
+              </Menu.Items>
+            </Transition>
+          </Menu>
         </div>
 
-        <main className="lg:pl-72">
+        <main className={clsx(sidebarCollapsed ? "lg:pl-20" : "lg:pl-72")}>
           <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
               <form className="relative flex flex-1" action="#" method="GET">
@@ -284,47 +511,84 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items className="absolute right-0 z-10 mt-2.5 w-80 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                      <div className="px-4 py-2 border-b border-gray-100">
+                      <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                        <span className="inline-flex items-center rounded-full bg-primary-50 px-2 py-1 text-xs font-medium text-primary-700">
+                          3 New
+                        </span>
                       </div>
                       <div className="max-h-60 overflow-y-auto">
                         <Menu.Item>
-                          <div className="px-4 py-3 hover:bg-gray-50">
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                  <DocumentDuplicateIcon className="h-4 w-4 text-primary-600" />
+                          {({ active }) => (
+                            <div className={`px-4 py-3 ${active ? 'bg-gray-50' : ''}`}>
+                              <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <DocumentDuplicateIcon className="h-4 w-4 text-primary-600" />
+                                  </div>
+                                </div>
+                                <div className="ml-3 w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900">New order received</p>
+                                  <p className="mt-1 text-sm text-gray-500">Order #12345 from John Doe</p>
+                                  <p className="mt-1 text-xs text-gray-400">5 minutes ago</p>
+                                </div>
+                                <div className="ml-3 flex-shrink-0 self-center">
+                                  <div className="h-2 w-2 rounded-full bg-primary-600"></div>
                                 </div>
                               </div>
-                              <div className="ml-3 w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900">New order received</p>
-                                <p className="mt-1 text-sm text-gray-500">Order #12345 from John Doe</p>
-                                <p className="mt-1 text-xs text-gray-400">5 minutes ago</p>
-                              </div>
                             </div>
-                          </div>
+                          )}
                         </Menu.Item>
                         <Menu.Item>
-                          <div className="px-4 py-3 hover:bg-gray-50">
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                  <CurrencyDollarIcon className="h-4 w-4 text-green-600" />
+                          {({ active }) => (
+                            <div className={`px-4 py-3 ${active ? 'bg-gray-50' : ''}`}>
+                              <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CurrencyDollarIcon className="h-4 w-4 text-green-600" />
+                                  </div>
+                                </div>
+                                <div className="ml-3 w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900">Payment received</p>
+                                  <p className="mt-1 text-sm text-gray-500">KES 2,500 for Order #12340</p>
+                                  <p className="mt-1 text-xs text-gray-400">1 hour ago</p>
+                                </div>
+                                <div className="ml-3 flex-shrink-0 self-center">
+                                  <div className="h-2 w-2 rounded-full bg-primary-600"></div>
                                 </div>
                               </div>
-                              <div className="ml-3 w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900">Payment received</p>
-                                <p className="mt-1 text-sm text-gray-500">KES 2,500 for Order #12340</p>
-                                <p className="mt-1 text-xs text-gray-400">1 hour ago</p>
+                            </div>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <div className={`px-4 py-3 ${active ? 'bg-gray-50' : ''}`}>
+                              <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                  <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                                    <UsersIcon className="h-4 w-4 text-yellow-600" />
+                                  </div>
+                                </div>
+                                <div className="ml-3 w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900">New quote request</p>
+                                  <p className="mt-1 text-sm text-gray-500">Business cards quote from Jane Smith</p>
+                                  <p className="mt-1 text-xs text-gray-400">3 hours ago</p>
+                                </div>
+                                <div className="ml-3 flex-shrink-0 self-center">
+                                  <div className="h-2 w-2 rounded-full bg-primary-600"></div>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </Menu.Item>
                       </div>
-                      <div className="border-t border-gray-100 px-4 py-2">
+                      <div className="border-t border-gray-100 px-4 py-2 flex justify-between items-center">
                         <Link href="/notifications" className="text-sm font-medium text-primary-600 hover:text-primary-500">
                           View all notifications
                         </Link>
+                        <button className="text-xs text-gray-500 hover:text-gray-700">
+                          Mark all as read
+                        </button>
                       </div>
                     </Menu.Items>
                   </Transition>
@@ -344,6 +608,10 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                       <span className="ml-4 text-sm font-semibold leading-6 text-gray-900" aria-hidden="true">
                         {user?.username || 'User'}
                       </span>
+                      <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full capitalize">
+                        {user?.role || 'Guest'}
+                      </span>
+                      <ChevronDownIcon className="ml-1 h-5 w-5 text-gray-400" aria-hidden="true" />
                     </span>
                   </Menu.Button>
                   <Transition
@@ -355,27 +623,45 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                    <Menu.Items className="absolute right-0 z-10 mt-2.5 w-56 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{user?.username || 'User'}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email || 'user@example.com'}</p>
+                      </div>
                       <Menu.Item>
                         {({ active }) => (
                           <Link
                             href="/profile"
                             className={clsx(
                               active ? 'bg-gray-50' : '',
-                              'block px-3 py-1 text-sm leading-6 text-gray-900'
+                              'block px-4 py-2 text-sm text-gray-700'
                             )}
                           >
-                            Your profile
+                            Your Profile
                           </Link>
                         )}
                       </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            href="/settings"
+                            className={clsx(
+                              active ? 'bg-gray-50' : '',
+                              'block px-4 py-2 text-sm text-gray-700'
+                            )}
+                          >
+                            Settings
+                          </Link>
+                        )}
+                      </Menu.Item>
+                      <div className="border-t border-gray-100"></div>
                       <Menu.Item>
                         {({ active }) => (
                           <button
                             onClick={logout}
                             className={clsx(
                               active ? 'bg-gray-50' : '',
-                              'block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900'
+                              'block w-full text-left px-4 py-2 text-sm text-gray-700'
                             )}
                           >
                             Sign out
