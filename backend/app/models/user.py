@@ -22,7 +22,8 @@ class User(db.Model):
     
     def set_password(self, password):
         """Set the password hash"""
-        self.password_hash = generate_password_hash(password)
+        # Use a shorter hash method (pbkdf2:sha256 instead of scrypt)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
     
     def check_password(self, password):
         """Check if the password is correct"""

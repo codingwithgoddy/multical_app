@@ -123,12 +123,11 @@ export interface PaginatedResponse<T> {
 
 // Auth Types
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
+  access_token: string;
   user: User;
 }

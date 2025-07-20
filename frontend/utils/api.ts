@@ -68,23 +68,23 @@ api.interceptors.response.use(
 
 // Helper functions for API calls
 export const apiGet = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  const response = await api.get<ApiResponse<T>>(url, config);
-  return response.data.data;
+  const response = await api.get<T>(url, config);
+  return response.data;
 };
 
 export const apiPost = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  const response = await api.post<ApiResponse<T>>(url, data, config);
-  return response.data.data;
+  const response = await api.post<T>(url, data, config);
+  return response.data;
 };
 
 export const apiPut = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  const response = await api.put<ApiResponse<T>>(url, data, config);
-  return response.data.data;
+  const response = await api.put<T>(url, data, config);
+  return response.data;
 };
 
 export const apiDelete = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  const response = await api.delete<ApiResponse<T>>(url, config);
-  return response.data.data;
+  const response = await api.delete<T>(url, config);
+  return response.data;
 };
 
 export default api;

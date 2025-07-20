@@ -30,18 +30,24 @@ def login():
     """Login a user"""
     data = request.get_json()
     
+    print(f"Login attempt with data: {data}")
+    
     # Validate input
     if not data or not data.get('email') or not data.get('password'):
+        print(f"Missing email or password: {data}")
         return jsonify({'error': 'Missing email or password'}), 400
     
     # Authenticate user
     result = authenticate_user(data.get('email'), data.get('password'))
     
     if result.get('error'):
+        print(f"Authentication failed: {result['error']}")
         return jsonify({'error': result['error']}), 401
     
     # Create access token
     access_token = create_access_token(identity=result['user']['id'])
+    
+    print(f"Login successful for user: {result['user']['username']}")
     
     return jsonify({
         'access_token': access_token,

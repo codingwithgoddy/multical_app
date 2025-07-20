@@ -56,8 +56,9 @@ export const useAuth = (): UseAuthReturn => {
       const response = await apiPost<AuthResponse>('/auth/login', credentials);
       
       // Store tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('accessToken', response.access_token);
+      // The backend doesn't provide a refresh token, so we'll use the access token for now
+      localStorage.setItem('refreshToken', response.access_token);
       
       // Set user state
       setUser(response.user);

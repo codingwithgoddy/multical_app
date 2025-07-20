@@ -2,6 +2,7 @@
 Database initialization script.
 Run this script to create the database tables and add some initial data.
 """
+from datetime import datetime
 from app import create_app
 from app.models import db
 from app.models.user import User, Address, PaymentMethod
