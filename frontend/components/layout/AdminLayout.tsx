@@ -10,6 +10,8 @@ import {
   XMarkIcon,
   CurrencyDollarIcon,
   ShoppingBagIcon,
+  Cog6ToothIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import Link from 'next/link';
@@ -17,13 +19,56 @@ import { useRouter } from 'next/router';
 import useAuth from '../../hooks/useAuth';
 import clsx from 'clsx';
 
+// Define navigation items with role-based access control
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Products', href: '/products', icon: ShoppingBagIcon },
-  { name: 'Orders', href: '/orders', icon: DocumentDuplicateIcon },
-  { name: 'Customers', href: '/customers', icon: UsersIcon },
-  { name: 'Payments', href: '/payments', icon: CurrencyDollarIcon },
-  { name: 'Analytics', href: '/analytics', icon: ChartPieIcon },
+  { 
+    name: 'Dashboard', 
+    href: '/dashboard', 
+    icon: HomeIcon,
+    roles: ['owner', 'payment_admin', 'worker'] // All roles can access
+  },
+  { 
+    name: 'Products', 
+    href: '/products', 
+    icon: ShoppingBagIcon,
+    roles: ['owner', 'worker'] // Only owners and workers can manage products
+  },
+  { 
+    name: 'Orders', 
+    href: '/orders', 
+    icon: DocumentDuplicateIcon,
+    roles: ['owner', 'payment_admin', 'worker'] // All roles can access
+  },
+  { 
+    name: 'Customers', 
+    href: '/customers', 
+    icon: UsersIcon,
+    roles: ['owner', 'payment_admin'] // Only owners and payment admins can access customer data
+  },
+  { 
+    name: 'Payments', 
+    href: '/payments', 
+    icon: CurrencyDollarIcon,
+    roles: ['owner', 'payment_admin'] // Only owners and payment admins can handle payments
+  },
+  { 
+    name: 'Analytics', 
+    href: '/analytics', 
+    icon: ChartPieIcon,
+    roles: ['owner'] // Only owners can access analytics
+  },
+  { 
+    name: 'Admin Users', 
+    href: '/admin-users', 
+    icon: UserGroupIcon,
+    roles: ['owner'] // Only owners can manage other admin users
+  },
+  { 
+    name: 'Settings', 
+    href: '/settings', 
+    icon: Cog6ToothIcon,
+    roles: ['owner'] // Only owners can access settings
+  },
 ];
 
 interface AdminLayoutProps {
@@ -92,30 +137,32 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                       <ul role="list" className="flex flex-1 flex-col gap-y-7">
                         <li>
                           <ul role="list" className="-mx-2 space-y-1">
-                            {navigation.map((item) => (
-                              <li key={item.name}>
-                                <Link
-                                  href={item.href}
-                                  className={clsx(
-                                    router.pathname === item.href
-                                      ? 'bg-primary-800 text-white'
-                                      : 'text-primary-200 hover:bg-primary-800 hover:text-white',
-                                    'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
-                                  )}
-                                >
-                                  <item.icon
+                            {navigation
+                              .filter(item => user?.role && item.roles.includes(user.role))
+                              .map((item) => (
+                                <li key={item.name}>
+                                  <Link
+                                    href={item.href}
                                     className={clsx(
                                       router.pathname === item.href
-                                        ? 'text-white'
-                                        : 'text-primary-200 group-hover:text-white',
-                                      'h-6 w-6 shrink-0'
+                                        ? 'bg-primary-800 text-white'
+                                        : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                                      'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                                     )}
-                                    aria-hidden="true"
-                                  />
-                                  {item.name}
-                                </Link>
-                              </li>
-                            ))}
+                                  >
+                                    <item.icon
+                                      className={clsx(
+                                        router.pathname === item.href
+                                          ? 'text-white'
+                                          : 'text-primary-200 group-hover:text-white',
+                                        'h-6 w-6 shrink-0'
+                                      )}
+                                      aria-hidden="true"
+                                    />
+                                    {item.name}
+                                  </Link>
+                                </li>
+                              ))}
                           </ul>
                         </li>
                       </ul>
@@ -137,30 +184,32 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
-                    {navigation.map((item) => (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={clsx(
-                            router.pathname === item.href
-                              ? 'bg-primary-800 text-white'
-                              : 'text-primary-200 hover:bg-primary-800 hover:text-white',
-                            'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
-                          )}
-                        >
-                          <item.icon
+                    {navigation
+                      .filter(item => user?.role && item.roles.includes(user.role))
+                      .map((item) => (
+                        <li key={item.name}>
+                          <Link
+                            href={item.href}
                             className={clsx(
                               router.pathname === item.href
-                                ? 'text-white'
-                                : 'text-primary-200 group-hover:text-white',
-                              'h-6 w-6 shrink-0'
+                                ? 'bg-primary-800 text-white'
+                                : 'text-primary-200 hover:bg-primary-800 hover:text-white',
+                              'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                             )}
-                            aria-hidden="true"
-                          />
-                          {item.name}
-                        </Link>
-                      </li>
-                    ))}
+                          >
+                            <item.icon
+                              className={clsx(
+                                router.pathname === item.href
+                                  ? 'text-white'
+                                  : 'text-primary-200 group-hover:text-white',
+                                'h-6 w-6 shrink-0'
+                              )}
+                              aria-hidden="true"
+                            />
+                            {item.name}
+                          </Link>
+                        </li>
+                      ))}
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
@@ -217,10 +266,69 @@ export default function AdminLayout({ children, title = 'Dashboard' }: AdminLayo
                 />
               </form>
               <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500">
-                  <span className="sr-only">View notifications</span>
-                  <BellIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
+                {/* Notification dropdown */}
+                <Menu as="div" className="relative">
+                  <Menu.Button className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
+                    <span className="sr-only">View notifications</span>
+                    <BellIcon className="h-6 w-6" aria-hidden="true" />
+                    {/* Notification badge */}
+                    <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+                  </Menu.Button>
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <Menu.Items className="absolute right-0 z-10 mt-2.5 w-80 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <Menu.Item>
+                          <div className="px-4 py-3 hover:bg-gray-50">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                  <DocumentDuplicateIcon className="h-4 w-4 text-primary-600" />
+                                </div>
+                              </div>
+                              <div className="ml-3 w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900">New order received</p>
+                                <p className="mt-1 text-sm text-gray-500">Order #12345 from John Doe</p>
+                                <p className="mt-1 text-xs text-gray-400">5 minutes ago</p>
+                              </div>
+                            </div>
+                          </div>
+                        </Menu.Item>
+                        <Menu.Item>
+                          <div className="px-4 py-3 hover:bg-gray-50">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                  <CurrencyDollarIcon className="h-4 w-4 text-green-600" />
+                                </div>
+                              </div>
+                              <div className="ml-3 w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900">Payment received</p>
+                                <p className="mt-1 text-sm text-gray-500">KES 2,500 for Order #12340</p>
+                                <p className="mt-1 text-xs text-gray-400">1 hour ago</p>
+                              </div>
+                            </div>
+                          </div>
+                        </Menu.Item>
+                      </div>
+                      <div className="border-t border-gray-100 px-4 py-2">
+                        <Link href="/notifications" className="text-sm font-medium text-primary-600 hover:text-primary-500">
+                          View all notifications
+                        </Link>
+                      </div>
+                    </Menu.Items>
+                  </Transition>
+                </Menu>
 
                 {/* Separator */}
                 <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />

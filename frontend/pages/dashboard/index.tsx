@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import Card from '../../components/ui/Card';
+import { useRouter } from 'next/router';
+import useAuth from '../../hooks/useAuth';
+import { apiGet } from '../../utils/api';
 
 interface DashboardStats {
   totalEarnings: number;
@@ -17,6 +20,16 @@ export default function Dashboard() {
     completedOrders: 0,
     outstandingDebts: 0,
   });
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // Check for unauthorized access message
+  useEffect(() => {
+    if (router.query.unauthorized === 'true') {
+      alert('You do not have permission to access the requested page.');
+      router.replace('/dashboard', undefined, { shallow: true });
+    }
+  }, [router]);
 
   useEffect(() => {
     // Simulate API call to fetch dashboard data
