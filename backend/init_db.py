@@ -2,13 +2,14 @@
 Database initialization script.
 Run this script to create the database tables and add some initial data.
 """
-from app import app, db
-from models import User, Product, Category, Order, OrderItem
+from app import create_app
+from app.models import db, User, Product, Category
 from werkzeug.security import generate_password_hash
-import os
 
 def init_db():
     """Initialize the database with tables and sample data"""
+    app = create_app('development')
+    
     with app.app_context():
         # Create tables
         db.create_all()
@@ -20,17 +21,17 @@ def init_db():
             admin = User(
                 username="admin",
                 email="admin@multiprints.com",
-                password_hash=generate_password_hash("admin123"),
                 is_admin=True
             )
+            admin.set_password("admin123")
             
             # Add regular user
             user = User(
                 username="customer",
                 email="customer@example.com",
-                password_hash=generate_password_hash("customer123"),
                 is_admin=False
             )
+            user.set_password("customer123")
             
             db.session.add(admin)
             db.session.add(user)
