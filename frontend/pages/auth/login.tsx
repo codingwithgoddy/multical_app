@@ -56,19 +56,26 @@ export default function Login() {
           
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label htmlFor="username" className="form-label">
-                Username
+              <label htmlFor="email" className="form-label">
+                Email
               </label>
               <div className="mt-2">
                 <input
-                  id="username"
-                  type="text"
-                  autoComplete="username"
-                  className={`form-input ${errors.username ? 'ring-red-500' : ''}`}
-                  {...register('username', { required: 'Username is required' })}
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  className={`form-input ${errors.email ? 'error' : ''}`}
+                  placeholder="you@example.com"
+                  {...register('email', { 
+                    required: 'Email is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
+                  })}
                 />
-                {errors.username && (
-                  <p className="mt-2 text-sm text-red-600">{errors.username.message}</p>
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
                 )}
               </div>
             </div>
@@ -82,7 +89,8 @@ export default function Login() {
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className={`form-input ${errors.password ? 'ring-red-500' : ''}`}
+                  className={`form-input ${errors.password ? 'error' : ''}`}
+                  placeholder="••••••••"
                   {...register('password', { required: 'Password is required' })}
                 />
                 {errors.password && (
