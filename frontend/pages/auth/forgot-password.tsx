@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import Head from 'next/head';
 import Link from 'next/link';
 import { apiPost } from '../../utils/api';
+import Input from '../../components/ui/Input';
 
 interface ForgotPasswordFormData {
   email: string;
@@ -109,31 +110,21 @@ export default function ForgotPassword() {
                 
                 <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email Address
-                    </label>
-                    <div className="mt-1 relative">
-                      <input
-                        id="email"
-                        type="email"
-                        autoComplete="email"
-                        className={`block w-full rounded-md shadow-sm py-2 px-3 border ${
-                          errors.email ? 'border-red-300 text-red-900 focus:outline-none focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500'
-                        } sm:text-sm`}
-                        placeholder="you@example.com"
-                        {...register('email', { 
-                          required: 'Email address is required',
-                          pattern: {
-                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                            message: 'Please enter a valid email address'
-                          }
-                        })}
-                        aria-invalid={errors.email ? 'true' : 'false'}
-                      />
-                      {errors.email && (
-                        <p className="mt-2 text-sm text-red-600" role="alert">{errors.email.message}</p>
-                      )}
-                    </div>
+                    <Input
+                      id="email"
+                      type="email"
+                      label="Email Address"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      error={errors.email?.message}
+                      {...register('email', { 
+                        required: 'Email address is required',
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: 'Please enter a valid email address'
+                        }
+                      })}
+                    />
                   </div>
 
                   <div>
