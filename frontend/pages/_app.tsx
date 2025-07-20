@@ -3,6 +3,8 @@ import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+import Head from 'next/head';
+import { AuthProvider } from '../contexts/AuthContext';
 
 // Define routes that require authentication
 const protectedRoutes = [
@@ -18,7 +20,7 @@ const protectedRoutes = [
 ];
 
 // Define routes that require specific roles
-const roleProtectedRoutes = {
+const roleProtectedRoutes: Record<string, Array<'owner' | 'payment_admin' | 'worker'>> = {
   '/analytics': ['owner'],
   '/admin-users': ['owner'],
   '/settings': ['owner'],
@@ -53,7 +55,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   );
 
   // Get required roles for the current route if any
-  const getRequiredRoles = () => {
+  const getRequiredRoles = (): Array<'owner' | 'payment_admin' | 'worker'> | undefined => {
     const exactMatch = roleProtectedRoutes[router.pathname];
     if (exactMatch) return exactMatch;
 
@@ -67,7 +69,14 @@ function MyApp({ Component, pageProps }: AppProps) {
   };
 
   return (
-    <>
+    <AuthProvider>
+      <Head>
+        <title>MultiPrints Admin</title>
+        <meta name="description" content="MultiPrints Business Management System" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      
       {isLoading && (
         <div className="fixed top-0 left-0 w-full h-1 bg-primary-500 z-50 animate-pulse" />
       )}
@@ -79,7 +88,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       ) : (
         <Component {...pageProps} />
       )}
-    </>
+    </AuthProvider>
   );
 }
 
