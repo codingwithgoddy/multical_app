@@ -1,41 +1,113 @@
-# Multiprints Frontend
+# MultiPrints Admin Dashboard
 
-This is the frontend application for the Multiprints Business Management System.
+This is the admin dashboard for the MultiPrints Business Management System. It provides a comprehensive interface for managing products, orders, customers, and payments for printing businesses.
 
-## Setup
+## Features
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+- Product management with image uploads via Cloudinary
+- Order tracking and management
+- Customer management and debt tracking
+- Payment processing with Mpesa integration
+- Business analytics and reporting
+- Multi-admin collaboration with role-based access
 
-2. Create a `.env.local` file:
-   ```bash
-   cp .env.example .env.local
-   ```
-   Then edit the `.env.local` file to add your configuration.
+## Tech Stack
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+- Next.js with TypeScript
+- Tailwind CSS for styling
+- React Hook Form for form handling
+- SWR for data fetching
+- Zustand for state management
+- Headless UI for accessible components
+- Heroicons for icons
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Getting Started
 
-## Pages
+### Prerequisites
 
-- `/`: Home page / Customer website
-- `/admin`: Admin dashboard
+- Node.js 16.x or later
+- npm or yarn
 
-## Development
+### Installation
 
-- Add new pages in the `pages` directory
-- Add reusable components in the `components` directory
-- Add styles in the `styles` directory
+1. Clone the repository
+2. Install dependencies:
 
-## Building for Production
+```bash
+cd frontend
+npm install
+# or
+yarn install
+```
+
+3. Set up environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your configuration values.
+
+### Development
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+### Build
+
+Build the application for production:
 
 ```bash
 npm run build
-npm start
+# or
+yarn build
 ```
+
+### Start Production Server
+
+Start the production server:
+
+```bash
+npm run start
+# or
+yarn start
+```
+
+## Project Structure
+
+- `components/` - React components
+  - `layout/` - Layout components
+  - `ui/` - Reusable UI components
+- `hooks/` - Custom React hooks
+- `pages/` - Next.js pages
+- `public/` - Static assets
+- `styles/` - Global styles
+- `types/` - TypeScript type definitions
+- `utils/` - Utility functions
+
+## API Integration
+
+The dashboard connects to the Flask backend API. API configuration is managed through environment variables:
+
+- `NEXT_PUBLIC_API_URL` - Base URL for the API
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Cloudinary cloud name for file uploads
+- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` - Cloudinary upload preset
+
+## Authentication
+
+The dashboard uses JWT authentication with the backend API. Authentication state is managed through the `useAuth` hook.
+
+## Deployment
+
+The application can be deployed to any platform that supports Next.js applications, such as Vercel, Netlify, or AWS Amplify.
+
+## License
+
+This project is proprietary and confidential.
