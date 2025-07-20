@@ -69,7 +69,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const response = await apiPost<AuthResponse>('/auth/login', credentials);
+      // Import the authService at the top of the file
+      const { authService } = await import('../services/authService');
+      const response = await authService.login(credentials);
       
       // Store tokens
       localStorage.setItem('accessToken', response.access_token);
