@@ -42,13 +42,39 @@ A comprehensive business management system designed to help small to medium prin
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
-   flask run
+   cp .env.example .env  # Configure your environment variables
+   python init_db.py     # Initialize the database
+   python run.py         # Start the Flask server
    ```
 4. Set up the frontend:
    ```bash
    cd frontend
    npm install
+   cp .env.example .env.local  # Configure your environment variables
    npm run dev
+   ```
+
+5. Alternatively, use the development script to start both servers:
+   ```bash
+   ./scripts/dev.sh
+   ```
+
+### API Integration Testing
+
+The project includes tools to test the API integration between frontend and backend:
+
+1. **API Status Component**: The dashboard includes an API status component that shows the current connection status to the backend API.
+
+2. **API Test Page**: A dedicated API test page is available at `/api-test` that allows you to test various API endpoints directly from the browser.
+
+3. **Health Check Script**: Run the backend health check script to verify API connectivity:
+   ```bash
+   python docs/backend-health-check.py
+   ```
+
+4. **Smoke Tests**: Run basic smoke tests to verify that both frontend and backend are working correctly:
+   ```bash
+   ./scripts/run-smoke-tests.sh
    ```
 
 ### CI/CD

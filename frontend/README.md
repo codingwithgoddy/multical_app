@@ -100,6 +100,38 @@ The dashboard connects to the Flask backend API. API configuration is managed th
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Cloudinary cloud name for file uploads
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` - Cloudinary upload preset
 
+### Testing API Integration
+
+The dashboard includes tools to test the API integration:
+
+1. **API Status Component**: The dashboard includes an API status component that shows the current connection status to the backend API. This component is visible on the dashboard page.
+
+2. **API Test Page**: A dedicated API test page is available at `/api-test` that allows you to test various API endpoints directly from the browser. This page includes:
+   - A dropdown to select different API endpoints
+   - A text area to input request bodies for POST requests
+   - A response display area to view API responses
+   - Authentication status tracking
+
+3. **API Testing Utilities**: The `utils/api-test.ts` file includes utility functions for testing API connectivity and authentication.
+
+To test the API integration:
+
+1. Make sure the backend server is running:
+   ```bash
+   cd backend
+   python run.py
+   ```
+
+2. Start the frontend development server:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Navigate to the dashboard at [http://localhost:3000](http://localhost:3000) and check the API status component.
+
+4. Navigate to the API test page at [http://localhost:3000/api-test](http://localhost:3000/api-test) to test specific API endpoints.
+
 ## Authentication
 
 The dashboard uses JWT authentication with the backend API. Authentication state is managed through the `useAuth` hook.

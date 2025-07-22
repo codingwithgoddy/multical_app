@@ -39,7 +39,7 @@ def init_db(env='development', force=False):
         # Check if database exists and is accessible
         try:
             with db.engine.connect() as connection:
-                connection.execute("SELECT 1")
+                connection.execute(db.text("SELECT 1"))
             logger.info("Database connection successful.")
         except (ProgrammingError, OperationalError) as e:
             logger.error(f"Error connecting to database: {e}")

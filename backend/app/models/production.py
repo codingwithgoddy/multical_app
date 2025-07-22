@@ -8,13 +8,13 @@ from datetime import datetime
 class ProductionJob(db.Model):
     """Production job model for tracking order production"""
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'))
     order = db.relationship('Order', backref=db.backref('production_jobs', lazy=True))
-    order_item_id = db.Column(db.Integer, db.ForeignKey('order_item.id'))
+    order_item_id = db.Column(db.Integer, db.ForeignKey('order_items.id'))
     order_item = db.relationship('OrderItem', backref=db.backref('production_job', lazy=True))
     status = db.Column(db.String(20), default='queued')  # queued, in_progress, completed, on_hold
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    assigned_user = db.relationship('User', backref=db.backref('assigned_jobs', lazy=True))
+    assigned_to = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=True)
+    assigned_user = db.relationship('AdminUser', backref=db.backref('assigned_jobs', lazy=True))
     priority = db.Column(db.String(20), default='normal')  # low, normal, high, urgent
     start_date = db.Column(db.DateTime)
     completion_date = db.Column(db.DateTime)
@@ -50,8 +50,8 @@ class ProductionStep(db.Model):
     job = db.relationship('ProductionJob', backref=db.backref('steps', lazy=True))
     name = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, in_progress, completed
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    assigned_user = db.relationship('User', backref=db.backref('assigned_steps', lazy=True))
+    assigned_to = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=True)
+    assigned_user = db.relationship('AdminUser', backref=db.backref('assigned_steps', lazy=True))
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     notes = db.Column(db.Text)

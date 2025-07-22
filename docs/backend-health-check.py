@@ -1,58 +1,65 @@
-# Example health check endpoint for Flask backend
-# This file is for reference only and should be integrated into your Flask application
+#!/usr/bin/env python3
+"""
+Simple script to check if the backend API is running and accessible.
+"""
+import requests
+import sys
+import json
+from urllib.parse import urljoin
 
-from flask import Blueprint, jsonify, current_app
-import psycopg2
-from datetime import datetime
-import cloudinary
-
-health = Blueprint('health', __name__)
-
-@health.route('/health', methods=['GET'])
-def health_check():
-    """
-    Health check endpoint for the backend service.
-    Returns status of the application and its dependencies.
-    """
-    status = {
-        'status': 'ok',
-        'timestamp': datetime.utcnow().isoformat(),
-        'version': current_app.config.get('VERSION', 'unknown'),
-        'environment': current_app.config.get('FLASK_ENV', 'unknown'),
-        'services': {
-            'database': check_database(),
-            'cloudinary': check_cloudinary()
-        }
-    }
-    
-    # If any service is down, return 503
-    if any(v != 'ok' for v in status['services'].values()):
-        status['status'] = 'degraded'
-        return jsonify(status), 503
-    
-    return jsonify(status)
-
-def check_database():
-    """Check database connection"""
+def check_backend_health(base_url):
+    """Check if the backend API is running and accessible."""
     try:
-        # Try to connect to the database
-        conn = psycopg2.connect(current_app.config['SQLALCHEMY_DATABASE_URI'])
-        conn.close()
-        return 'ok'
+        # Check health endpoint
+        health_url = urljoin(base_url, '/api/v1/health')
+        print(f"Checking health endpoint: {health_url}")
+        
+        health_response = requests.get(health_url, timeout=5)
+        health_response.raise_for_status()
+        
+        print("✅ Health check successful!")
+        print(f"Status code: {health_response.status_code}")
+        print(f"Response: {json.dumps(health_response.json(), indent=2)}")
+        
+        # Check API root endpoint
+        root_url = urljoin(base_url, '/api/v1/')
+        print(f"\nChecking API root endpoint: {root_url}")
+        
+        root_response = requests.get(root_url, timeout=5)
+        root_response.raise_for_status()
+        
+        print("✅ API root check successful!")
+        print(f"Status code: {root_response.status_code}")
+        print(f"Response: {json.dumps(root_response.json(), indent=2)}")
+        
+        return True
+    except requests.exceptions.ConnectionError:
+        print("❌ Connection error: Could not connect to the backend API.")
+        print("Make sure the backend server is running and accessible.")
+        return False
+    except requests.exceptions.Timeout:
+        print("❌ Timeout error: The backend API took too long to respond.")
+        return False
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP error: {e}")
+        return False
     except Exception as e:
-        current_app.logger.error(f"Database health check failed: {str(e)}")
-        return 'error'
+        print(f"❌ Unexpected error: {e}")
+        return False
 
-def check_cloudinary():
-    """Check Cloudinary connection"""
-    try:
-        # Try to ping Cloudinary
-        result = cloudinary.api.ping()
-        return 'ok'
-    except Exception as e:
-        current_app.logger.error(f"Cloudinary health check failed: {str(e)}")
-        return 'error'
-
-# To register this blueprint in your Flask app:
-# from app.routes.health import health
-# app.register_blueprint(health)
+if __name__ == "__main__":
+    # Default backend URL
+    backend_url = "http://localhost:5000"
+    
+    # Check if a custom URL was provided
+    if len(sys.argv) > 1:
+        backend_url = sys.argv[1]
+    
+    print(f"Testing backend API at: {backend_url}")
+    
+    if check_backend_health(backend_url):
+        print("\n✅ Backend API is running and accessible!")
+        sys.exit(0)
+    else:
+        print("\n❌ Backend API check failed!")
+        sys.exit(1)

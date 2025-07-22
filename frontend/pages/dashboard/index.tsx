@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import Card from '../../components/ui/Card';
+import ApiStatus from '../../components/ui/ApiStatus';
 import { useRouter } from 'next/router';
 import useAuth from '../../hooks/useAuth';
 import Link from 'next/link';
@@ -207,6 +208,13 @@ export default function Dashboard() {
       href: '/products/new',
       color: 'bg-orange-500',
     },
+    {
+      title: 'Test API',
+      description: 'Test backend API endpoints',
+      icon: ClipboardDocumentCheckIcon,
+      href: '/api-test',
+      color: 'bg-indigo-500',
+    },
   ];
 
   // Chart data
@@ -383,6 +391,9 @@ export default function Dashboard() {
           Overview of your business performance and key metrics
         </p>
       </div>
+      
+      {/* API Status */}
+      <ApiStatus showDetails={true} />
 
       {/* Key Metrics */}
       {isLoading ? (

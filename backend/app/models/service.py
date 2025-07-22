@@ -10,8 +10,7 @@ class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    category = db.relationship('Category', backref=db.backref('services', lazy=True))
+    category = db.Column(db.String(50))  # Category as a string, not a relationship
     base_price = db.Column(db.Float, nullable=False)
     pricing_model = db.Column(db.String(20), nullable=False, default='fixed')  # fixed, hourly, custom
     active = db.Column(db.Boolean, default=True)
@@ -27,8 +26,7 @@ class Service(db.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'category_id': self.category_id,
-            'category': self.category.name if self.category else None,
+            'category': self.category,
             'base_price': self.base_price,
             'pricing_model': self.pricing_model,
             'active': self.active,

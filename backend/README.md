@@ -109,3 +109,53 @@ backend/
 - To add new controllers, create them in the `app/controllers` directory
 - To add new routes, create them in the `app/routes` directory
 - To run tests: `pytest`
+
+## API Testing
+
+### Using the Health Check Script
+
+You can use the provided health check script to verify that the backend API is running and accessible:
+
+```bash
+python docs/backend-health-check.py
+```
+
+This script will check if the API health endpoint and root endpoint are accessible and return the expected responses.
+
+### Using the Frontend API Test Page
+
+The frontend includes an API test page that allows you to test various API endpoints:
+
+1. Start the backend server:
+   ```bash
+   cd backend
+   python run.py
+   ```
+
+2. Start the frontend development server:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Navigate to the API test page in your browser:
+   ```
+   http://localhost:3000/api-test
+   ```
+
+4. Use the API test page to send requests to different endpoints and view the responses.
+
+### Common API Testing Scenarios
+
+1. **Health Check**: Test if the API is running
+   - Endpoint: `GET /api/v1/health`
+   - Expected response: Status 200 with health information
+
+2. **Authentication**: Test login functionality
+   - Endpoint: `POST /api/v1/auth/login`
+   - Request body: `{"email": "admin@example.com", "password": "password123"}`
+   - Expected response: Status 200 with access token and user information
+
+3. **Protected Endpoints**: Test endpoints that require authentication
+   - First login to get an access token
+   - Then use the token to access protected endpoints like `GET /api/v1/auth/me`

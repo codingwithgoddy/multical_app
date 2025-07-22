@@ -8,16 +8,16 @@ export const authService = {
       
       console.log('Backend response:', response);
       
-      // Map backend user model to frontend user model
+      // Map backend admin model to frontend user model
       const mappedUser: User = {
-        id: response.user.id,
-        username: response.user.username,
-        email: response.user.email,
-        // Map is_admin boolean to role string
-        role: response.user.is_admin ? 'owner' : 'worker',
-        isActive: true,
-        lastLogin: new Date().toISOString(),
-        createdAt: response.user.created_at || new Date().toISOString()
+        id: response.admin.id,
+        username: response.admin.username,
+        email: response.admin.email,
+        // Use role from admin object
+        role: response.admin.role || 'worker',
+        isActive: response.admin.is_active || true,
+        lastLogin: response.admin.last_login || new Date().toISOString(),
+        createdAt: response.admin.created_at || new Date().toISOString()
       };
       
       console.log('Mapped user:', mappedUser);
@@ -41,8 +41,8 @@ export const authService = {
       id: backendUser.id,
       username: backendUser.username,
       email: backendUser.email,
-      role: backendUser.is_admin ? 'owner' : 'worker',
-      isActive: true,
+      role: backendUser.role || 'worker',
+      isActive: backendUser.is_active || true,
       lastLogin: backendUser.last_login || new Date().toISOString(),
       createdAt: backendUser.created_at || new Date().toISOString()
     };
