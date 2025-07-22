@@ -24,21 +24,44 @@ class Config:
     
     # Application configuration
     APP_NAME = os.environ.get('APP_NAME', 'Multiprints Business System')
-    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'codegoddy@gmail.com')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@multiprints.com')
     FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+    
+    # Security configuration
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_HTTPONLY = True
 
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
+    DEVELOPMENT = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/multiprints_dev')
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
 
 class TestingConfig(Config):
     """Testing configuration"""
     TESTING = True
+    DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/multiprints_test')
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
+    
+class StagingConfig(Config):
+    """Staging configuration"""
+    DEBUG = False
+    TESTING = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('STAGING_DATABASE_URL')
+    JWT_ACCESS_TOKEN_EXPIRES = 43200  # 12 hours
     
 class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
+    TESTING = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours
+    
+    # Production-specific security settings
+    PREFERRED_URL_SCHEME = 'https'

@@ -3,7 +3,6 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import Card from '../../components/ui/Card';
 import { useRouter } from 'next/router';
 import useAuth from '../../hooks/useAuth';
-import { apiGet } from '../../utils/api';
 import Link from 'next/link';
 import {
   ArrowTrendingUpIcon,
@@ -279,7 +278,9 @@ export default function Dashboard() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: number) => `KES ${value.toLocaleString()}`,
+          callback: function(value: any) {
+            return `KES ${value.toLocaleString()}`;
+          }
         },
       },
     },
@@ -313,7 +314,9 @@ export default function Dashboard() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: number) => `KES ${value.toLocaleString()}`,
+          callback: function(value: any) {
+            return `KES ${value.toLocaleString()}`;
+          }
         },
       },
     },
