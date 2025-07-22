@@ -1,48 +1,70 @@
 """
 Initialize admin user script.
-This script creates an initial admin user with owner role if no admin users exist.
+This script creates an initial admin user with owner role.
 """
 import os
 import sys
-from flask import Flask
+import logging
+import argparse
 from app import create_app
-from app.models import db
 from app.models.admin_user import AdminUser, AdminRole
-from app.controllers.auth_controller import create_initial_owner
-from dotenv import load_dotenv
+from app.models import db
 
-# Load environment variables
-load_dotenv()
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger('init_admin')
 
-def init_admin():
-    """Initialize admin user"""
-    # Create Flask app
-    app = create_app()
+def init_admin(username, email, password, env='development'):
+    """
+    Initialize admin user.
+    
+    Args:
+        username: Admin username
+        email: Admin email
+        password: Admin password
+        env: Environment to use
+    """
+    logger.info(f"Initializing admin user for {env} environment...")
+    
+    # Create the application with the specified environment
+    app = create_app(env)
     
     with app.app_context():
         # Check if any admin users exist
         if AdminUser.query.count() > 0:
-            print("Admin users already exist. Skipping initialization.")
+            logger.info("Admin users already exist. Skipping initialization.")
             return
         
-        # Get admin credentials from environment variables or use defaults
-        username = os.environ.get('ADMIN_USERNAME', 'admin')
-        email = os.environ.get('ADMIN_EMAIL', 'admin@multiprints.com')
-        password = os.environ.get('ADMIN_PASSWORD')
+        # Create owner admin
+        owner = AdminUser(
+            username=username,
+            email=email,
+            role=AdminRole.OWNER,
+            is_active=True
+        )
+        owner.set_password(password)
         
-        # Check if password is provided
-        if not password:
-            print("Error: ADMIN_PASSWORD environment variable is required.")
-            sys.exit(1)
+        # Save to database
+        db.session.add(owner)
+        db.session.commit()
         
-        # Create initial owner admin
-        result = create_initial_owner(username, email, password)
-        
-        if result.get('error'):
-            print(f"Error creating admin user: {result['error']}")
-            sys.exit(1)
-        
-        print(f"Admin user '{username}' created successfully with role 'owner'.")
+        logger.info(f"Admin user '{username}' created successfully with role 'owner'.")
 
 if __name__ == '__main__':
-    init_admin()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Initialize admin user.')
+    parser.add_argument('--username', default='admin', help='Admin username')
+    parser.add_argument('--email', default='admin@example.com', help='Admin email')
+    parser.add_argument('--password', default='password123', help='Admin password')
+    parser.add_argument('--env', choices=['development', 'testing', 'staging', 'production'],
+                        default='development', help='Environment to use')
+    args = parser.parse_args()
+    
+    # Initialize admin user
+    init_admin(args.username, args.email, args.password, args.env)

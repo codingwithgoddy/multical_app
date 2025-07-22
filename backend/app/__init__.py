@@ -41,8 +41,8 @@ def create_app(config_name=None):
     # Configure logging
     configure_logging(app, config_name)
     
-    # Initialize extensions
-    CORS(app)
+    # Initialize extensions with specific CORS settings
+    CORS(app, resources={r"/*": {"origins": "*", "supports_credentials": True, "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}}, allow_headers=["Content-Type", "Authorization"])
     
     # Initialize database with error handling
     try:

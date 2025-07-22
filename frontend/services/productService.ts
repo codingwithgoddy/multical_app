@@ -66,7 +66,18 @@ export const productService = {
   
   // Create a new product
   createProduct: async (productData: ProductFormData): Promise<Product> => {
-    return apiPost<Product>('/products', productData);
+    // Map frontend field names to backend field names
+    const mappedData = {
+      name: productData.name,
+      description: productData.description,
+      type: productData.type,
+      price: productData.basePrice,
+      category: productData.category,
+      image_url: productData.imageUrl,
+      cloudinary_public_id: productData.cloudinaryPublicId,
+      is_active: productData.isActive
+    };
+    return apiPost<Product>('/products', mappedData);
   },
   
   // Update an existing product

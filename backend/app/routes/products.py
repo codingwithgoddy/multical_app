@@ -93,15 +93,15 @@ def get_categories():
     categories = get_all_categories()
     return jsonify({'categories': categories}), 200
 
-@products_bp.route('/categories/<int:category_id>', methods=['GET'])
-def get_category(category_id):
-    """Get a category by ID"""
-    category = get_category_by_id(category_id)
+@products_bp.route('/categories/<string:category_name>', methods=['GET'])
+def get_category(category_name):
+    """Get products by category name"""
+    category_data = get_category_by_id(category_name)
     
-    if not category:
+    if not category_data:
         return jsonify({'error': 'Category not found'}), 404
     
-    return jsonify({'category': category}), 200
+    return jsonify({'category': category_data}), 200
 
 @products_bp.route('/categories', methods=['POST'])
 @jwt_required()
@@ -125,9 +125,9 @@ def add_category():
     
     return jsonify(result), 201
 
-@products_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@products_bp.route('/categories/<string:old_category>', methods=['PUT'])
 @jwt_required()
-def update_category_route(category_id):
+def update_category_route(old_category):
     """Update a category"""
     # Check if user is admin
     if not is_admin(get_jwt_identity()):
@@ -135,24 +135,28 @@ def update_category_route(category_id):
     
     data = request.get_json()
     
+    # Validate input
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
     # Update category
-    result = update_category(category_id, data)
+    result = update_category(old_category, data.get('name'))
     
     if result.get('error'):
         return jsonify({'error': result['error']}), 404 if result.get('error') == 'Category not found' else 400
     
     return jsonify(result), 200
 
-@products_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@products_bp.route('/categories/<string:category_name>', methods=['DELETE'])
 @jwt_required()
-def delete_category_route(category_id):
+def delete_category_route(category_name):
     """Delete a category"""
     # Check if user is admin
     if not is_admin(get_jwt_identity()):
         return jsonify({'error': 'Unauthorized'}), 403
     
     # Delete category
-    result = delete_category(category_id)
+    result = delete_category(category_name)
     
     if result.get('error'):
         return jsonify({'error': result['error']}), 404

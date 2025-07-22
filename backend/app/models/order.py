@@ -66,8 +66,8 @@ class Order(BaseModel):
     
     # Relationships
     customer = db.relationship('Customer', back_populates='orders')
-    assigned_worker = db.relationship('AdminUser', foreign_keys=[assigned_to])
-    delivery_location = db.relationship('DeliveryLocation')
+    assigned_worker = db.relationship('AdminUser', foreign_keys=[assigned_to], overlaps="assigned_orders")
+    delivery_location = db.relationship('DeliveryLocation', foreign_keys=[delivery_location_id], overlaps="orders")
     order_items = db.relationship('OrderItem', back_populates='order', cascade='all, delete-orphan')
     design_files = db.relationship('DesignFile', back_populates='order', cascade='all, delete-orphan')
     payments = db.relationship('Payment', back_populates='order')

@@ -29,12 +29,12 @@ class AdminUser(BaseModel):
     last_login = db.Column(db.DateTime, nullable=True)
     
     # Self-referential relationship for tracking who created this admin
-    created_admins = db.relationship('AdminUser', 
-                                    backref=db.backref('creator', remote_side=[id]),
-                                    foreign_keys='AdminUser.created_by_id')
+    creator = db.relationship('AdminUser', 
+                             primaryjoin="AdminUser.created_by_id==AdminUser.id",
+                             remote_side="AdminUser.id")
     
     # Relationship for assigned orders
-    assigned_orders = db.relationship('Order', backref='assigned_worker', 
+    assigned_orders = db.relationship('Order', 
                                      foreign_keys='Order.assigned_to',
                                      lazy='dynamic')
     

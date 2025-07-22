@@ -2,7 +2,7 @@
 Product controller.
 This module contains the product controller functions.
 """
-from app.models import db, Product, Category
+from app.models import db, Product
 
 def get_all_products(category_id=None):
     """Get all products, optionally filtered by category"""
@@ -24,19 +24,14 @@ def get_product_by_id(product_id):
 
 def create_product(data):
     """Create a new product"""
-    # Check if category exists
-    if data.get('category_id'):
-        category = Category.query.get(data.get('category_id'))
-        if not category:
-            return {'error': 'Category not found'}
-    
     # Create new product
     product = Product(
         name=data.get('name'),
         description=data.get('description'),
-        price=data.get('price'),
+        base_price=data.get('price') or data.get('base_price'),
         image_url=data.get('image_url'),
-        category_id=data.get('category_id')
+        category=data.get('category'),
+        type=data.get('type', 'product')
     )
     
     # Save product to database
@@ -52,23 +47,23 @@ def update_product(product_id, data):
     if not product:
         return {'error': 'Product not found'}
     
-    # Check if category exists
-    if data.get('category_id'):
-        category = Category.query.get(data.get('category_id'))
-        if not category:
-            return {'error': 'Category not found'}
-    
     # Update product fields
     if data.get('name'):
         product.name = data.get('name')
     if data.get('description') is not None:
         product.description = data.get('description')
     if data.get('price'):
-        product.price = data.get('price')
+        product.base_price = data.get('price')
+    elif data.get('base_price'):
+        product.base_price = data.get('base_price')
     if data.get('image_url') is not None:
         product.image_url = data.get('image_url')
-    if data.get('category_id'):
-        product.category_id = data.get('category_id')
+    if data.get('category') is not None:
+        product.category = data.get('category')
+    if data.get('type') is not None:
+        product.type = data.get('type')
+    if 'is_active' in data:
+        product.is_active = data.get('is_active')
     
     # Save changes to database
     db.session.commit()
@@ -90,63 +85,54 @@ def delete_product(product_id):
 
 def get_all_categories():
     """Get all categories"""
-    categories = Category.query.all()
-    return [category.to_dict() for category in categories]
+    # Get distinct categories from products
+    categories = db.session.query(Product.category).distinct().all()
+    return [{'name': category[0]} for category in categories if category[0]]
 
-def get_category_by_id(category_id):
-    """Get a category by ID"""
-    category = Category.query.get(category_id)
+def get_category_by_id(category_name):
+    """Get products by category name"""
+    products = Product.query.filter_by(category=category_name).all()
     
-    if not category:
+    if not products:
         return None
     
-    return category.to_dict()
+    return {
+        'name': category_name,
+        'products': [product.to_dict() for product in products]
+    }
 
 def create_category(data):
-    """Create a new category"""
-    # Create new category
-    category = Category(
-        name=data.get('name'),
-        description=data.get('description')
-    )
-    
-    # Save category to database
-    db.session.add(category)
-    db.session.commit()
-    
-    return {'message': 'Category created successfully', 'category': category.to_dict()}
+    """Create a new category (not used, categories are stored as strings in products)"""
+    return {'error': 'Categories are stored as strings in products, not as separate entities'}
 
-def update_category(category_id, data):
-    """Update a category"""
-    category = Category.query.get(category_id)
+def update_category(old_category, new_category):
+    """Update category name for all products in that category"""
+    products = Product.query.filter_by(category=old_category).all()
     
-    if not category:
+    if not products:
         return {'error': 'Category not found'}
     
-    # Update category fields
-    if data.get('name'):
-        category.name = data.get('name')
-    if data.get('description') is not None:
-        category.description = data.get('description')
+    # Update category for all products
+    for product in products:
+        product.category = new_category
     
     # Save changes to database
     db.session.commit()
     
-    return {'message': 'Category updated successfully', 'category': category.to_dict()}
+    return {'message': 'Category updated successfully', 'affected_products': len(products)}
 
-def delete_category(category_id):
-    """Delete a category"""
-    category = Category.query.get(category_id)
+def delete_category(category_name):
+    """Remove category from all products (set to null)"""
+    products = Product.query.filter_by(category=category_name).all()
     
-    if not category:
+    if not products:
         return {'error': 'Category not found'}
     
-    # Check if category has products
-    if category.products:
-        return {'error': 'Cannot delete category with products'}
+    # Remove category from all products
+    for product in products:
+        product.category = None
     
-    # Delete category from database
-    db.session.delete(category)
+    # Save changes to database
     db.session.commit()
     
-    return {'message': 'Category deleted successfully'}
+    return {'message': 'Category removed from all products', 'affected_products': len(products)}

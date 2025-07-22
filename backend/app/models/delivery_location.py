@@ -34,7 +34,7 @@ class DeliveryLocation(BaseModel):
     is_active = db.Column(db.Boolean, default=True)
     
     # Relationships
-    orders = db.relationship('Order', backref='delivery_location_ref')
+    orders = db.relationship('Order', foreign_keys='Order.delivery_location_id')
     
     @validates('delivery_fee')
     def validate_delivery_fee(self, key, fee):

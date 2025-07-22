@@ -169,3 +169,16 @@ def create_initial_owner(username, email, password):
         return {'admin': owner.to_dict()}
     except (ValidationError, IntegrityConstraintViolation) as e:
         return {'error': str(e)}
+
+def is_admin(admin_id):
+    """
+    Check if a user is an admin.
+    
+    Args:
+        admin_id: The admin's ID
+        
+    Returns:
+        True if the user is an admin, False otherwise
+    """
+    admin = AdminUser.get_by_id(admin_id)
+    return admin is not None and admin.is_active

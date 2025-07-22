@@ -59,8 +59,8 @@ def checkout(dbapi_connection, connection_record, connection_proxy):
     finally:
         cursor.close()
 
-@event.listens_for(Engine, "disconnect")
-def disconnect(dbapi_connection, connection_record):
+@event.listens_for(Engine, "close")
+def close(dbapi_connection, connection_record):
     """Log connection disconnection."""
     logger.info("Database connection closed")
 
