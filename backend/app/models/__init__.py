@@ -70,12 +70,19 @@ from app.models.base import BaseModel, DatabaseError, NotFoundError, ValidationE
 # Import models in order to avoid circular imports
 # First import models with no dependencies
 from app.models.admin_user import AdminUser, AdminRole
+from app.models.customer import Customer
+from app.models.product import Product, ProductType
+from app.models.delivery_location import DeliveryLocation
 
 # Then import models that depend on the above
 from app.models.dashboard_note import DashboardNote
 from app.models.user import User, Address, PaymentMethod
-from app.models.product import Category, Product, ProductImage, ProductOption, ProductOptionValue
-from app.models.service import Service, ServiceOption, ServiceOptionValue
-from app.models.quote import QuoteRequest, QuoteFile, Quote, QuoteItem
-from app.models.order import Order, OrderItem, OrderFile, OrderStatus, Payment, Delivery
+from app.models.quote_request import QuoteRequest, QuoteStatus, ContactMethod
+from app.models.quote_file import QuoteFile, FileUploadedBy
+from app.models.order import Order, OrderItem, OrderStatus, FulfillmentType
+from app.models.design_file import DesignFile
+from app.models.payment import Payment, PaymentMethod as PaymentMethodEnum, PaymentStatus
 from app.models.production import ProductionJob, ProductionStep
+
+# Legacy imports for backward compatibility (if needed)
+from app.models.service import Service, ServiceOption, ServiceOptionValue
